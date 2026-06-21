@@ -1,0 +1,12 @@
+{
+  "Build": {
+    "hash": "815185920cafd57be8bda4faa533da268b15f54f6878232d2c5eae8ae0462949",
+    "outputs": [
+      "main.exe"
+    ]
+  },
+  "Run": {
+    "hash": "961e8daa93b2e8f0a79613bc022c3acb74adde585b45716a4eb7a38e21847d72",
+    "outputs": []
+  }
+}
