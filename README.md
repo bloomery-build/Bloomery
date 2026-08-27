@@ -1,5 +1,5 @@
 # Bloomery — A TOML-native Build System
-<small>Partially AI generated</small><br><br>
+<small>Partially AI generated README content</small><br><br>
 Bloomery is a declarative build system driven entirely by plain TOML. There
 is no embedded scripting language: conditionals are ordinary TOML tables
 with a reserved `on` key, file resolution and other operations are tables
@@ -25,6 +25,15 @@ To track the git checkout instead, so updates are just a pull:
 bloomery install     # pip install -e the checkout (clones one if needed)
 bloomery update      # git pull it
 bloomery uninstall   # pip uninstall bloomery-build
+```
+
+New to a project? `bloomery init` scaffolds a starter `bloomery.toml` in
+the current directory — asks for a project name and (optionally) a mold
+name, then writes `[meta]`/`[variables]`/`[plugins.command]` with sane
+defaults for you to add `[tasks.*]` to:
+
+```bash
+bloomery init
 ```
 
 Requires Python 3.8+. Uses the stdlib `tomllib` on 3.11+; on 3.8–3.10 it
@@ -314,20 +323,23 @@ dispatch `{ on = "platform", ... }` both just read the same value.
 
 ```
 bloomery/
-├── core.py              — Everything below
-├── molds/               — Bundled build presets (c, c++, rust, python)
-│
-├── Context              — Evaluation state (raw variables, platform, mold)
-├── Evaluator             — Resolves TOML values
-│   ├── resolve_str/list()  — Public entry points
-│   ├── Dispatch tables       — { on = "var", ... }
-│   ├── Reserved-key tables   — ending/matching/in/shell/exists/prefix
-│   └── Interpolation          — {expr}, with cycle detection
-├── BuildCache            — Content-based incremental builds + header deps
-├── TaskDAG                — Dependency graph, topological sort, parallel waves
-├── PluginManager          — Command prefix, hooks
-└── TaskRunner              — Field resolution → cache → execute
+├── context.py     — Context: raw variables, platform, mold, per-task fork
+├── evaluator.py   — Evaluator: dispatch tables, reserved keys, {interp}
+├── cache.py       — BuildCache + depfile parsing
+├── dag.py         — TaskDAG: dependency graph, topo sort, parallel waves
+├── plugins.py     — PluginManager: command prefix, hooks
+├── runner.py      — TaskRunner: field resolution → cache → execute
+├── config.py      — parse_toml, profiles, mold search/inheritance
+├── cli.py         — argparse, main(), task execution loop
+├── selfmanage.py  — install/update/uninstall/init, the cli() entry point
+├── errors.py      — BloomeryError and its subclasses
+├── molds/         — Bundled build presets (c, c++, rust, python)
+└── storage/       — bloomery init's starter template
 ```
+
+Each module is a few hundred lines with a single job; `__init__.py`
+re-exports the public API so `from bloomery import Evaluator` still works
+regardless of which file it actually lives in.
 
 There is no parser to speak of — `tomllib` does that — and no multi-pass
 resolution loop. A value is walked once, recursively; a dispatch branch or

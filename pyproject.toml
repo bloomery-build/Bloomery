@@ -27,7 +27,7 @@ dependencies = [
 Homepage = "https://github.com/hydrophobis/Bloomery"
 
 [project.scripts]
-bloomery = "bloomery.core:cli"
+bloomery = "bloomery.selfmanage:cli"
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
@@ -36,7 +36,7 @@ dev = ["pytest>=7"]
 packages = ["bloomery"]
 
 [tool.setuptools.dynamic]
-version = { attr = "bloomery.core.__version__" }
+version = { attr = "bloomery._version.__version__" }
 
 [tool.setuptools.package-data]
 bloomery = ["molds/*.toml", "storage/**/*"]

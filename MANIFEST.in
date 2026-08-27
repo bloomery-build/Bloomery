@@ -3,6 +3,7 @@ include README.md
 include CHANGELOG.md
 include conftest.py
 recursive-include bloomery/molds *.toml
+recursive-include bloomery/storage *.toml
 recursive-include tests *.py
 recursive-include examples *.toml *.cpp
 prune .github
