@@ -1,0 +1,15 @@
+[bloomery]
+mold = "c"
+
+[meta]
+name = "C"
+version = "0.1"
+description = "Default C compilation mold"
+
+[definitions]
+compiler = "gcc"
+standard = "11"
+flags = "-std=c{mold.standard} -Wall"
+files = { ending = [".c"] }
+ext = { on = "platform", windows = ".exe", default = "" }
+output = "-o {input}{mold.ext}"

@@ -1,0 +1,42 @@
+[meta]
+name = "hello-cpp"
+version = "0.1"
+system = "c++"
+
+[variables]
+compiler = "g++"
+debug = true
+debug_flags = "-g -O0"
+output = { on = "platform", windows = "hello.exe", default = "hello" }
+
+[plugins.command]
+prefix = { on = "platform", windows = "cmd /c", default = "" }
+
+[plugins.hooks.build]
+post = "echo Build successful!"
+
+[profiles.debug]
+debug = true
+debug_flags = "-g -O0"
+
+[profiles.release]
+debug = false
+debug_flags = "-O2 -DNDEBUG"
+
+[tasks.build]
+command = "{compiler}"
+flags = "-std=c++17 {debug_flags}"
+files = { ending = [".cpp", ".cc", ".cxx"] }
+headers = { ending = [".h", ".hpp"] }
+output = "-o {output}"
+
+[tasks.run]
+always_run = true
+depends = ["build"]
+command = "{output}"
+
+[tasks.clean]
+always_run = true
+default = false
+command = { on = "platform", windows = "cmd /c del /q", default = "rm -f" }
+flags = "{output}"

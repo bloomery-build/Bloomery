@@ -1,0 +1,10 @@
+[meta]
+name = "{{name}}"
+version = "0.1"
+{{system}}
+
+[variables]
+example = true
+
+[plugins.command]
+prefix = { on = "platform", windows = "cmd /c", default = "" }

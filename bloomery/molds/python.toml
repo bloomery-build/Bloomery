@@ -1,0 +1,13 @@
+[bloomery]
+mold = "python"
+
+[meta]
+name = "Python"
+version = "0.1"
+description = "Default Python tooling mold"
+
+[definitions]
+compiler = { on = "platform", windows = "python", default = "python3" }
+flags = ""
+files = { ending = [".py"] }
+output = ""
