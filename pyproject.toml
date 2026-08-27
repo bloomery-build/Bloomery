@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bloomery-build"
+dynamic = ["version"]
+description = "A metaprogrammable, INI-based build system"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [{ name = "hydrophobis" }]
+keywords = ["build", "build-system", "make", "ini", "metaprogramming"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Build Tools",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/hydrophobis/Bloomery"
+
+[project.scripts]
+bloomery = "bloomery.core:cli"
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[tool.setuptools]
+packages = ["bloomery"]
+
+[tool.setuptools.dynamic]
+version = { attr = "bloomery.core.__version__" }
+
+[tool.setuptools.package-data]
+bloomery = ["molds/*.ini"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
