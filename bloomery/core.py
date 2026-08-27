@@ -1,9 +1,4 @@
 """
-Bloomery — a TOML-native build system.
-
-Every project/mold file is plain TOML. Two conventions carry all the
-"metaprogramming":
-
 Interpolation (in any string value):
     {name}              Variable / dispatch-table reference
     {env.NAME}          Environment variable
@@ -75,39 +70,30 @@ import platform as platform_module
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 
-
 # CONST
 CACHE_FILE = ".bloomery_cache.json"
-
 
 # EXCEPT
 class BloomeryError(Exception):
     """Base exception for Bloomery build errors."""
 
-
 class CyclicDependencyError(BloomeryError):
     """Raised when a cycle is detected in the task dependency graph."""
-
 
 class TaskFailedError(BloomeryError):
     """Raised when a task command exits with a non-zero code."""
 
-
 class ConfigNotFoundError(BloomeryError):
     """Raised when a project or mold TOML file cannot be found."""
-
 
 class ConfigParseError(BloomeryError):
     """Raised when a TOML file is malformed."""
 
-
 class UnknownTargetError(BloomeryError):
     """Raised when a requested target matches no task."""
 
-
 class MoldNotFoundError(ConfigNotFoundError):
     """Raised when a mold cannot be located on the search path."""
-
 
 # CONTEXT
 class Context:
@@ -902,8 +888,8 @@ def list_targets(config):
 def main():
     parser = argparse.ArgumentParser(
         prog="bloomery",
-        description="Bloomery — A TOML-native Build System",
-        epilog="Self-management: bloomery install | update | uninstall",
+        description="A TOML-native Build System",
+        epilog="Management: bloomery install | update | uninstall",
     )
     parser.add_argument("project", help="Path to project .toml file")
     parser.add_argument("targets", nargs="*", help="Specific targets to run")
@@ -1115,16 +1101,28 @@ def update_command():
 def uninstall_command():
     _run(sys.executable, "-m", "pip", "uninstall", "-y", "bloomery-build")
 
+def init_command():
+    with open(os.path.join(os.path.expanduser("~"), ".bloomery", "storage/init.toml")) as template:
+        project_name = input("Enter the name of the project: ")
+        project_system = input("Enter the system/mold name: ")
+        content = template.read().replace("{{name}}", project_name)
+        if project_system:
+            content = content.replace("{{system}}", f"system = \"{project_system}\"")
+        else:
+            content = content.replace("{{system}}", "")
+
+        with open("./bloomery.toml", "w") as f:
+            f.write(content)
 
 SELF_COMMANDS = {
     "install": install_command,
     "update": update_command,
     "uninstall": uninstall_command,
+    "init": init_command
 }
 
 
 def cli():
-    """Entry point: run main(), report errors without a traceback"""
     try:
         # before argparse, which would read these as a project path
         if len(sys.argv) == 2 and sys.argv[1] in SELF_COMMANDS:
