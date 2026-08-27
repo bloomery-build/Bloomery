@@ -5,7 +5,7 @@ from bloomery.core import (
     ConfigParseError,
     Context,
     CyclicDependencyError,
-    DirectiveEngine,
+    Evaluator,
     MoldNotFoundError,
     PluginManager,
     TaskDAG,
@@ -21,8 +21,7 @@ from bloomery.core import (
     main,
     mold_search_path,
     parse_depfile,
-    parse_ini,
-    task_aliases,
+    parse_toml,
 )
 
 __all__ = [
@@ -32,7 +31,7 @@ __all__ = [
     "ConfigParseError",
     "Context",
     "CyclicDependencyError",
-    "DirectiveEngine",
+    "Evaluator",
     "MoldNotFoundError",
     "PluginManager",
     "TaskDAG",
@@ -48,6 +47,5 @@ __all__ = [
     "main",
     "mold_search_path",
     "parse_depfile",
-    "parse_ini",
-    "task_aliases",
+    "parse_toml",
 ]

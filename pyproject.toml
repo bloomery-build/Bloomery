@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bloomery-build"
 dynamic = ["version"]
-description = "A metaprogrammable, INI-based build system"
+description = "A TOML-native build system"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { file = "LICENSE" }
 authors = [{ name = "hydrophobis" }]
-keywords = ["build", "build-system", "make", "ini", "metaprogramming"]
+keywords = ["build", "build-system", "make", "toml"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -19,7 +19,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Software Development :: Build Tools",
 ]
-dependencies = []
+dependencies = [
+    "tomli>=2; python_version < '3.11'",
+]
 
 [project.urls]
 Homepage = "https://github.com/hydrophobis/Bloomery"
@@ -37,7 +39,7 @@ packages = ["bloomery"]
 version = { attr = "bloomery.core.__version__" }
 
 [tool.setuptools.package-data]
-bloomery = ["molds/*.ini"]
+bloomery = ["molds/*.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

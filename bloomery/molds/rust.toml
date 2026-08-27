@@ -1,0 +1,15 @@
+[bloomery]
+mold = "rust"
+
+[meta]
+name = "Rust"
+version = "0.1"
+description = "Default rustc compilation mold"
+
+[definitions]
+compiler = "rustc"
+edition = "2021"
+flags = "--edition {mold.edition}"
+files = { ending = [".rs"] }
+ext = { on = "platform", windows = ".exe", default = "" }
+output = "-o {input}{mold.ext}"

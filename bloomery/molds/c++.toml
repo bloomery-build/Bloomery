@@ -1,0 +1,15 @@
+[bloomery]
+mold = "c++"
+
+[meta]
+name = "C++"
+version = "0.1"
+author = "k6303"
+description = "Default C++ compilation mold"
+
+[definitions]
+compiler = "g++"
+standard = "17"
+flags = "-std=c++{mold.standard}"
+files = { ending = [".cpp", ".cc", ".cxx", ".c"] }
+output = "-o {input}.exe"

@@ -1,6 +1,11 @@
-# Bloomery — A Metaprogrammable Build System
+# Bloomery — A TOML-native Build System
 <small>Partially AI generated</small><br><br>
-Bloomery is a declarative, INI-based build system with a powerful metaprogramming DSL. Configure builds using simple `.ini` files, leverage reusable **molds** (templates), and express complex build logic with directives like conditionals, loops, shell substitution, and variable interpolation.
+Bloomery is a declarative build system driven entirely by plain TOML. There
+is no embedded scripting language: conditionals are ordinary TOML tables
+with a reserved `on` key, file resolution and other operations are tables
+with a reserved verb key, and everything else is `{name}`-style
+interpolation. Reusable **molds** (build presets) give you sane defaults
+per language.
 
 ## Installation
 
@@ -22,37 +27,36 @@ bloomery update      # git pull it
 bloomery uninstall   # pip uninstall bloomery-build
 ```
 
-Requires Python 3.8+ and has no runtime dependencies.
+Requires Python 3.8+. Uses the stdlib `tomllib` on 3.11+; on 3.8–3.10 it
+pulls in `tomli`, a small pure-Python TOML parser — the only dependency
+Bloomery has, and only there because `tomllib` hasn't shipped yet.
 
 ## Quick Start
 
 ```bash
 # Build and run
-bloomery project.ini
+bloomery project.toml
 
 # Run a specific target
-bloomery project.ini run
+bloomery project.toml run
 
 # Force a full rebuild
-bloomery project.ini --clean
+bloomery project.toml --clean
 
 # Dry run (show commands, don't execute)
-bloomery project.ini --dry-run
+bloomery project.toml --dry-run
 
 # Override a variable
-bloomery project.ini -D debug=false
+bloomery project.toml -D debug=false
 
 # List available targets
-bloomery project.ini --list
-
-# Verbose mode (show directive resolution)
-bloomery project.ini --verbose
+bloomery project.toml --list
 
 # Use a build profile
-bloomery project.ini --profile release
+bloomery project.toml --profile release
 
 # Build independent tasks in parallel (0 = one job per CPU)
-bloomery project.ini -j4
+bloomery project.toml -j4
 
 # Print the version
 bloomery --version
@@ -62,223 +66,206 @@ bloomery --version
 
 ```
 project/
-├── project.ini           ← Your project build config
-├── main.cpp              ← Source files
-├── c++.ini               ← Optional: a local mold overriding the bundled one
-└── .bloomery_cache.json  ← Auto-generated build cache
+├── project.toml           ← Your project build config
+├── main.cpp                ← Source files
+├── c++.toml                ← Optional: a local mold overriding the bundled one
+└── .bloomery_cache.json     ← Auto-generated build cache
 ```
 
 A runnable example lives in [`examples/hello-cpp/`](examples/hello-cpp/):
 
 ```bash
 cd examples/hello-cpp
-bloomery project.ini
+bloomery project.toml
 ```
 
 ## Configuration Reference
 
-### Project INI (`project.ini`)
+### Project TOML (`project.toml`)
 
-```ini
-[Meta]
-Name = myproject
-Version = 1.0
-Author = You
-System = c++              ; Which mold to load
+```toml
+[meta]
+name = "myproject"
+version = "1.0"
+system = "c++"                # which bundled mold to load
 
-[Variables]
-compiler = g++            ; Project-level variables
+[variables]
+compiler = "g++"
 debug = true
-output = myapp.exe
+output = "myapp.exe"
 
-[Plugins.Command]
-Prefix = <if(platform=windows)>cmd /c<end>
+[plugins.command]
+prefix = { on = "platform", windows = "cmd /c", default = "" }
 
-[Plugins.Hooks]
-PostBuild = echo Done!         ; Pre<Task> / Post<Task> / OnFail<Task>
+[plugins.hooks.build]
+post = "echo Done!"            # scoped under [plugins.hooks.<task>]
 
-[Tasks]
-build = Build             ; alias = SectionName
-run = Run
-clean = Clean
+[variables]
+debug_flags = { on = "debug", true = "-g -O0", false = "-O2" }
 
-[Tasks.Build]
-Depends =                  ; Comma-separated task dependencies
-Command = {compiler}
-Flags = -std=c++17 <if(var(debug))>-g -O0<else>-O2<end>
-Files = <files ending (.cpp|.cc|.cxx|.c)>
-Exclude = *_test.cpp       ; Glob patterns to exclude (optional)
-Output = -o {output}
+[tasks.build]
+depends = []                    # task names this one depends on
+command = "{compiler}"
+flags = "-std=c++17 {debug_flags}"
+files = { ending = [".cpp", ".cc", ".cxx", ".c"] }
+exclude = ["*_test.cpp"]
+output = "-o {output}"
 
-[Tasks.Run]
-Depends = Build
-Command = {output}
+[tasks.run]
+depends = ["build"]
+command = "{output}"
 
-[Tasks.Clean]
-Command = <if(platform=windows)>cmd /c del /q<else>rm -f<end>
-Flags = {output}
+[tasks.clean]
+command = { on = "platform", windows = "cmd /c del /q", default = "rm -f" }
+flags = "{output}"
 ```
 
-### Mold INI (`c++.ini`)
+A dispatch table has to be the *entire* value of a field — it can't sit
+inside a longer string the way you might expect from a templating language.
+When a field needs to mix literal text with a dispatch, as `flags` does
+above, give the dispatch its own named variable and reference it with
+`{debug_flags}`; there's no way to write the dispatch inline in `flags`
+itself.
 
-Molds provide reusable build presets. A project references a mold via `Meta.System`.
+Task names are the `[tasks.*]` keys themselves — `bloomery project.toml
+build` looks up `[tasks.build]` directly. There's no separate alias table;
+TOML's own key naming does that job.
 
-```ini
-[Bloomery]
-Mold = c++
+### Mold TOML (`c++.toml`)
 
-[Meta]
-Name = C++
-Version = 0.1
+Molds provide reusable build presets. A project references one via `meta.system`.
 
-[Definitions]              ; Default values that tasks can inherit
-Compiler = g++
-Standard = 17
-Flags = -std=c++<var(standard)>
-Files = <files ending (.cpp|.cc|.cxx|.c)>
-Output = -o <input>.exe
+```toml
+[bloomery]
+mold = "c++"
+
+[meta]
+name = "C++"
+version = "0.1"
+
+[definitions]
+compiler = "g++"
+standard = "17"
+flags = "-std=c++{mold.standard}"
+files = { ending = [".cpp", ".cc", ".cxx", ".c"] }
+output = "-o {input}.exe"
 ```
 
-### Profiles (`[Profiles.X]`)
+### Profiles (`[profiles.X]`)
 
-Profiles let you define variable sets for different build modes:
+Profiles overlay a named set of variables on top of `[variables]`:
 
-```ini
-[Profiles.debug]
+```toml
+[profiles.debug]
 debug = true
-optimize = false
+debug_flags = "-g -O0"
 
-[Profiles.release]
+[profiles.release]
 debug = false
-optimize = true
+debug_flags = "-O2 -DNDEBUG"
 ```
 
-Activate with `--profile debug` or `--profile release`.
+Activate with `--profile debug` or `--profile release`. Profiles are the
+right tool for "this value differs by build mode" — reach for a dispatch
+table only for things that aren't a mode choice, like platform, which
+nothing selects and Bloomery just observes.
 
-## Metaprogramming DSL
+## The DSL: interpolation + dispatch tables
 
-### Variables
-
-```ini
-[Variables]
-myvar = hello
-
-; Directives
-Flags = <var(myvar)>                      → hello
-Command = <env(PATH)>                     → system PATH value
-Output = -o <shell(date +%Y%m%d)>.exe    → -o 20260620.exe
-```
+Every project/mold file is plain TOML — a standard TOML parser reads it
+correctly with zero knowledge of Bloomery. Two conventions carry all of
+what would be "metaprogramming" in another build system.
 
 ### Interpolation
 
-```ini
-Flags = {compiler} -Wall                 → g++ -Wall
-Name = {env.USER}_build                  → alice_build
+Any string value may contain `{...}` references:
+
+```toml
+flags = "{compiler} -Wall"                → g++ -Wall
+name  = "{env.USER}_build"                → alice_build
+flags = "{mold.flags}"                    → mold's own flags field
+output = "{task.compile.outputs}"         → files another task produced
 ```
 
-### Conditional — `<if>`
+### Dispatch tables — the `on` key
 
-```ini
-; Platform condition
-Command = <if(platform=windows)>g++.exe<else>g++<end>
+A table with an `on` key picks a branch by the current value of that
+variable, with `default` as the fallback:
 
-; Variable truthiness
-Flags = <if(var(debug))>-g -O0<else>-O2<end>
-
-; Variable equality
-Flags = <if(var(mode)=safe)>-fsanitize=address<end>
-
-; Negation
-Flags = <if(!var(debug))>-DNDEBUG<end>
-
-; File existence
-Flags = <if(exists(config.h))>-DHAVE_CONFIG<end>
-
-; Environment variable
-Flags = <if(env(CI))>-DCI_BUILD<end>
-
-; elif chain
-Flags = <if(var(level)=1)>-O1<elif(var(level)=2)>-O2<elif(var(level)=3)>-O3<else>-O0<end>
+```toml
+output = { on = "platform", windows = "hello.exe", default = "hello" }
+flags  = { on = "debug", true = "-g -O0", false = "-O2 -DNDEBUG" }
 ```
 
-### Loops — `<for>`
+A branch can itself be another dispatch table, a list, or a plain string —
+resolution recurses. `-D debug=false` on the command line, or an override
+from `[profiles.X]`, both just change what a dispatch reads; nothing about
+the mechanism cares where the value came from.
 
-```ini
-; Literal list
-Defines = <for(d in DEBUG|VERBOSE)>-D{d}<end>     → -DDEBUG -DVERBOSE
+### Reserved-key tables — files, shell, exists
 
-; File iteration
-Check = <for(f in files: .cpp)>echo {f}<end>
+A handful of other reserved keys cover the rest of what used to be tag
+directives:
 
-; Numeric range
-Ids = <for(i in range(1,5))>-DID_{i}<end>         → -DID_1 -DID_2 -DID_3 -DID_4
+```toml
+files = { ending = [".cpp", ".cc"] }             # by extension, project dir
+files = { in = "lib", ending = [".cpp"] }        # ...scoped to a directory
+files = { matching = "src/**.cpp" }              # by glob, recursive
+greeting = { shell = "date +%Y%m%d" }            # captured stdout
+has_cfg  = { exists = "config.h" }               # "true" / "false"
+defines  = { prefix = "-D", items = ["A", "B"] } # → "-DA -DB"
 ```
 
-### File Resolution
-
-```ini
-; By extension (in project directory)
-Files = <files ending (.cpp|.cc|.cxx|.c)>
-
-; By glob pattern (recursive)
-Files = <files matching (src/**.cpp)>
-
-; Directory-scoped + extension
-Files = <files in (lib; .cpp|.cc)>
-
-; Exclude patterns (separate field)
-Exclude = *_test.cpp *_bench.cpp
-```
+Every value here is resolved recursively too, so `items` can itself be a
+dispatch table, another reserved-key table, or an interpolated string.
 
 ## Incremental Builds
 
 ### Header dependencies
 
-Bloomery hashes file contents to decide what to rebuild. Files that the
+Bloomery hashes file contents to decide what to rebuild. Files the
 compiler reads via `#include` never appear on the command line, so they
 must be declared — otherwise editing a header leaves you with a stale
 binary. There are two ways:
 
-```ini
-; Explicit: hashed, but never passed to the compiler
-Headers = <files ending (.h|.hpp)>
+```toml
+headers = { ending = [".h", ".hpp"] }     # explicit: hashed, never passed to the compiler
 
-; Automatic: read the compiler's own dependency output
-Flags   = -MMD -MF obj/<stem>.d
-DepFile = obj/<stem>.d
+flags   = "-c -MMD -MF obj/{stem}.d"      # automatic: read the compiler's own
+depfile = "obj/{stem}.d"                  # dependency output
 ```
 
-`DepFile` is preferred — it tracks exactly the headers each file actually
+`depfile` is preferred — it tracks exactly the headers each file actually
 included, transitively, instead of over-invalidating on every header.
 
 ### Per-file compilation
 
-`Mode = per-file` runs one command per input with its own cache entry, so
-editing one source recompiles only that source. `<stem>` is the current
+`mode = "per-file"` runs one command per input with its own cache entry, so
+editing one source recompiles only that source. `{stem}` is the current
 file's name without its extension, and `{task.X.outputs}` lets a link step
 consume what a compile step produced:
 
-```ini
-[Tasks.Compile]
-Mode = per-file
-Command = {compiler}
-Flags = -c -MMD -MF obj/<stem>.d
-Files = <files ending (.cpp)>
-Output = -o obj/<stem>.o
-DepFile = obj/<stem>.d
+```toml
+[tasks.compile]
+mode = "per-file"
+command = "{compiler}"
+flags = "-c -MMD -MF obj/{stem}.d"
+files = { ending = [".cpp"] }
+output = "-o obj/{stem}.o"
+depfile = "obj/{stem}.d"
 
-[Tasks.Link]
-Depends = Compile
-Command = {compiler}
-Files = {task.Compile.outputs}
-Output = -o {output}
+[tasks.link]
+depends = ["compile"]
+command = "{compiler}"
+files = "{task.compile.outputs}"
+output = "-o {output}"
 ```
 
 ```
-$ bloomery project.ini            # after editing only main.cpp
-[RUN]  Compile [main.cpp]: ...
-[SKIP] Compile [util.cpp] (up to date)
-[RUN]  Link: ...
+$ bloomery project.toml            # after editing only main.cpp
+[RUN]  compile [main.cpp]: ...
+[SKIP] compile [util.cpp] (up to date)
+[RUN]  link: ...
 ```
 
 Per-file tasks are also what make `-j` worthwhile — independent tasks in
@@ -286,52 +273,42 @@ the same dependency level run concurrently.
 
 ## Molds
 
-Molds are looked up by `Meta.System` in this order, first match winning:
+Molds are looked up by `meta.system` in this order, first match winning:
 
 1. The project directory
-2. `Meta.MoldPath` (paths relative to the project)
+2. `meta.mold_path` (paths relative to the project)
 3. `$BLOOMERY_MOLD_PATH`
 4. `~/.bloomery/molds/`
 5. The molds bundled with Bloomery — currently `c`, `c++`, `rust`, `python`
 
-So `System = c` works with no local file, and dropping a `c.ini` beside
+So `system = "c"` works with no local file, and dropping a `c.toml` beside
 your project overrides the bundled one. A mold that can't be found is an
 error listing every path searched.
 
 Molds may build on one another:
 
-```ini
-[Bloomery]
-Mold = c++
-Extends = c        ; inherit any [Definitions] not defined here
+```toml
+[bloomery]
+mold = "c++"
+extends = "c"       # inherit any [definitions] not defined here
 ```
 
-Mold definitions are reached with `<mold(Field)>` or `{mold.Field}`; they
-are *not* copied into the variable namespace, so a mold key named `Files`
-cannot shadow a project variable of the same name.
+Mold definitions are reached with `{mold.field}` only; they are *not*
+copied into the variable namespace, so a mold key named `files` cannot
+shadow a project variable of the same name. A mold's own definitions
+cross-reference each other the same way — `flags = "-std=c++{mold.standard}"`
+inside the mold's own `[definitions]`.
 
-### Mold References
+### Special variables
 
-```ini
-; Use mold's default for the current field
-Flags = <mold()> -Wall
-
-; Use mold's specific field
-Command = <mold(Compiler)>
-
-; Explicitly no mold contribution (empty)
-Files = <mold(none)> <files matching (vendor/**.c)>
-```
-
-### Special Directives
-
-| Directive | Description |
+| Name | Description |
 |---|---|
-| `<platform>` | Current OS: `windows`, `linux`, or `macos` |
-| `<exists(path)>` | `'true'` if file exists, else `'false'` |
-| `<input>` | Primary source file stem (auto-set from Files) |
-| `<stem>` | Current file's stem, in a `Mode = per-file` task |
-| `<shell(cmd)>` | Captured stdout of shell command |
+| `{platform}` | Current OS: `windows`, `linux`, or `macos` — seeded automatically |
+| `{input}` | Primary source file's stem (auto-set from `files`) |
+| `{stem}` | Current file's stem, in a `mode = "per-file"` task |
+
+These are ordinary variables, not special syntax — `{platform}` and a
+dispatch `{ on = "platform", ... }` both just read the same value.
 
 ## Architecture
 
@@ -340,59 +317,36 @@ bloomery/
 ├── core.py              — Everything below
 ├── molds/               — Bundled build presets (c, c++, rust, python)
 │
-├── Context              — Evaluation state (variables, platform, mold)
-├── DirectiveEngine      — Metaprogramming template resolver
-│   ├── resolve()        — Main entry point
-│   ├── Control flow      — <if>/<elif>/<else>/<end>, <for>/<end>
-│   ├── Simple directives — <var>, <env>, <shell>, <mold>, <files…>
-│   ├── Interpolation     — {expr}
-│   └── Condition eval     — Platform, var, env, exists checks
-├── BuildCache           — Content-based incremental builds + header deps
-├── TaskDAG              — Dependency graph, topological sort, parallel waves
-├── PluginManager        — Command prefix, hooks
-└── TaskRunner           — Field resolution → cache → execute
+├── Context              — Evaluation state (raw variables, platform, mold)
+├── Evaluator             — Resolves TOML values
+│   ├── resolve_str/list()  — Public entry points
+│   ├── Dispatch tables       — { on = "var", ... }
+│   ├── Reserved-key tables   — ending/matching/in/shell/exists/prefix
+│   └── Interpolation          — {expr}, with cycle detection
+├── BuildCache            — Content-based incremental builds + header deps
+├── TaskDAG                — Dependency graph, topological sort, parallel waves
+├── PluginManager          — Command prefix, hooks
+└── TaskRunner              — Field resolution → cache → execute
 ```
+
+There is no parser to speak of — `tomllib` does that — and no multi-pass
+resolution loop. A value is walked once, recursively; a dispatch branch or
+reserved-key argument that's itself a table is just another recursive call,
+not more text to re-scan.
 
 ## Comparison with Make/CMake
 
 | Feature | Bloomery | Make | CMake |
 |---|---|---|---|
-| Config format | INI | Makefile | CMakeLists.txt |
-| Metaprogramming | Built-in DSL | Shell commands | CMake language |
-| Templates/Molds | ✅ `.ini` molds | ❌ | ✅ Toolchain files |
-| Conditional builds | `<if(platform=…)>` | `ifeq` | `if()` |
-| Loops | `<for(var in list)>` | `foreach` | `foreach` |
+| Config format | TOML | Makefile | CMakeLists.txt |
+| Metaprogramming | None — dispatch tables + interpolation | Shell commands | CMake language |
+| Templates/Molds | ✅ `.toml` molds | ❌ | ✅ Toolchain files |
+| Conditional builds | `{ on = "var", ... }` | `ifeq` | `if()` |
 | Incremental builds | Content-hash cache | Mtime checks | CMake cache |
-| Header tracking | `DepFile` / `Headers` | `-MMD` + include | ✅ Automatic |
+| Header tracking | `depfile` / `headers` | `-MMD` + include | ✅ Automatic |
 | Parallel builds | `-j N` | `-j N` | `--parallel N` |
-| Cross-platform | `<platform>` + `<if>` | ❌ (manual) | ✅ Built-in |
-| Learn curve | INI + directives | Makefile syntax | CMake language |
-
-## Extending Bloomery
-
-### Custom Directive Handlers
-
-```python
-from bloomery import DirectiveEngine, Context
-
-ctx = Context(variables={"lib": "mylib"})
-engine = DirectiveEngine(ctx)
-
-def handle_lib(args):
-    return f"-l{args or ctx.get_var('lib')}"
-
-engine.register_handler("lib", handle_lib)
-result = engine.resolve("<lib(boost)>")   # → "-lboost"
-```
-
-### Custom Hooks
-
-```ini
-[Plugins.Hooks]
-PreBuild = echo "Starting build..."
-PostBuild = echo "Build complete!"
-OnFailBuild = echo "Build failed!" && exit 1
-```
+| Cross-platform | `{platform}` seeded automatically | ❌ (manual) | ✅ Built-in |
+| Learn curve | TOML + two reserved-key conventions | Makefile syntax | CMake language |
 
 ## Development
 
