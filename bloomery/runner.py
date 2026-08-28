@@ -72,7 +72,7 @@ class TaskRunner:
             ctx.set_var("output", evaluator.resolve_str(output_name))
 
         command_line = self._assemble(cmd_str, flags_str, files, output_str)
-        output_files = self._extract_output_paths(output_str, project_dir)
+        output_files = self._resolve_outputs(evaluator, task_config, output_str, project_dir)
         ctx.resolved_outputs[name] = output_files
 
         depfile = evaluator.resolve_str(task_config.get("depfile", "")).strip()
@@ -100,7 +100,7 @@ class TaskRunner:
             output_str = evaluator.resolve_str(task_config.get("output", ""))
 
             command_line = self._assemble(cmd_str, flags_str, [path], output_str)
-            outputs = self._extract_output_paths(output_str, project_dir)
+            outputs = self._resolve_outputs(evaluator, task_config, output_str, project_dir)
             all_outputs.extend(outputs)
 
             depfile = evaluator.resolve_str(task_config.get("depfile", "")).strip()
@@ -265,8 +265,13 @@ class TaskRunner:
         return subprocess.run(command_line, shell=True, cwd=abs_dir)
 
     @staticmethod
+    def _resolve_outputs(evaluator, task_config, output_str, project_dir):
+        if "outputs" in task_config:
+            return evaluator.resolve_list(task_config["outputs"])
+        return TaskRunner._extract_output_paths(output_str, project_dir)
+
+    @staticmethod
     def _extract_output_paths(output_str, project_dir):
-        """Output paths from the Output field: -o <path> or -o<path>"""
         paths = []
         for m in re.finditer(r'-o\s+(\S+)', output_str):
             paths.append(m.group(1))

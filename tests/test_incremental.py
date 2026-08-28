@@ -172,6 +172,93 @@ def test_task_outputs_feeds_a_link_step(tmp_path, cc):
     assert (tmp_path / "app.bin").read_text() == "a\nb\n"
 
 
+# ── outputs field (compilers whose output flag isn't -o) ──────────
+
+NONSTANDARD_CC = '''
+import sys
+args = sys.argv[1:]
+out = next(a[len("--emit="):] for a in args if a.startswith("--emit="))
+srcs = [a for a in args if not a.startswith("-")]
+with open(out, "w") as f:
+    for s in srcs:
+        f.write(open(s).read())
+'''
+
+
+@pytest.fixture
+def nonstandard_cc(tmp_path):
+    path = tmp_path / "nonstandard_cc.py"
+    path.write_text(NONSTANDARD_CC, encoding="utf-8")
+    return f'python "{path}"'
+
+
+def test_without_explicit_outputs_a_non_dash_o_flag_is_not_tracked(tmp_path, nonstandard_cc):
+    """Documents the gap the 'outputs' field exists to close: with no
+    explicit outputs, a deleted binary from a --emit=-style compiler is
+    invisible to the cache, so a rebuild is wrongly skipped."""
+    (tmp_path / "a.src").write_text("body\n", encoding="utf-8")
+    write_toml(tmp_path, f"""
+        [meta]
+        name = "gap"
+        [variables]
+        cc = '{nonstandard_cc}'
+        [tasks.build]
+        command = "{{cc}}"
+        files = {{ ending = [".src"] }}
+        output = "--emit=out.bin"
+    """)
+    ini = str(tmp_path / "project.toml")
+    run_cli(ini)
+    (tmp_path / "out.bin").unlink()
+    out = run_cli(ini).stdout
+    assert "[SKIP]" in out          # wrongly considers the deleted binary current
+
+
+def test_explicit_outputs_tracks_any_flag_syntax(tmp_path, nonstandard_cc):
+    """The fix: declaring outputs explicitly makes cache tracking work
+    regardless of what flag the compiler actually used."""
+    (tmp_path / "a.src").write_text("body\n", encoding="utf-8")
+    write_toml(tmp_path, f"""
+        [meta]
+        name = "fixed"
+        [variables]
+        cc = '{nonstandard_cc}'
+        [tasks.build]
+        command = "{{cc}}"
+        files = {{ ending = [".src"] }}
+        output = "--emit=out.bin"
+        outputs = ["out.bin"]
+    """)
+    ini = str(tmp_path / "project.toml")
+    run_cli(ini)
+    assert "[SKIP]" in run_cli(ini).stdout      # unchanged: still cached
+
+    (tmp_path / "out.bin").unlink()
+    out = run_cli(ini).stdout
+    assert "[RUN]" in out                        # missing output forces a rebuild
+    assert (tmp_path / "out.bin").exists()
+
+
+def test_explicit_outputs_supports_interpolation(tmp_path, nonstandard_cc):
+    """outputs goes through the same resolver as files/headers, so {stem}
+    and friends work inside it, not just literal strings."""
+    (tmp_path / "a.src").write_text("body\n", encoding="utf-8")
+    write_toml(tmp_path, f"""
+        [meta]
+        name = "stem"
+        [variables]
+        cc = '{nonstandard_cc}'
+        [tasks.build]
+        mode = "per-file"
+        command = "{{cc}}"
+        files = {{ ending = [".src"] }}
+        output = "--emit=obj/{{stem}}.bin"
+        outputs = ["obj/{{stem}}.bin"]
+    """)
+    run_cli(str(tmp_path / "project.toml"))
+    assert (tmp_path / "obj" / "a.bin").exists()
+
+
 # ── parallel execution ────────────────────────────────────────────
 
 PARALLEL_TOML = """

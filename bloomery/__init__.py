@@ -24,6 +24,7 @@ Task fields:
     mode = "per-file"   One command per input file, cached individually
     headers = [...]     Hashed but kept off the command line (#include deps)
     depfile = "..."     Make-format depfile to read #include deps from
+    outputs = [...]     Paths that Bloomery should check for existence to see if the task needs rerun
     depends = ["..."]   Task names this one depends on
     always_run = true   Skip the cache, always execute
     default = false     Excluded from the default (no-target) build
