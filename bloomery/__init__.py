@@ -30,8 +30,8 @@ Task fields:
     default = false     Excluded from the default (no-target) build
 
 Usage:
-    bloomery <project.toml> [targets...] [options]
-    python -m bloomery <project.toml> [targets...] [options]
+    bloomery [targets...] [options]
+    python -m bloomery [targets...] [options]
 
 Options:
     --clean          Force full rebuild (ignore cache)
@@ -42,6 +42,7 @@ Options:
     --profile NAME   Activate a profile (overlays [profiles.NAME])
     -j, --jobs N     Run independent tasks in parallel (0 = one per CPU)
     --keep-going     Don't cancel sibling tasks after a failure
+    --manifest       Path to the project manifest
     --version        Print version and exit
 
 Self-management:

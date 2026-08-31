@@ -31,14 +31,15 @@ Requires Python 3.8+. Uses `tomllib` on 3.11+; on 3.8–3.10 it installs
 ## Quick Start
 
 ```bash
-bloomery project.toml                    # build and run the default targets
-bloomery project.toml run                 # run a specific target
-bloomery project.toml --clean             # ignore the cache, rebuild everything
-bloomery project.toml --dry-run           # print commands without running them
-bloomery project.toml -D debug=false      # override a variable
-bloomery project.toml --list              # list targets
-bloomery project.toml --profile release   # activate a profile
-bloomery project.toml -j4                 # run independent tasks in parallel
+bloomery                            # build and run the default targets
+bloomery run                        # run a specific target
+bloomery --clean                    # ignore the cache, rebuild everything
+bloomery --dry-run                  # print commands without running them
+bloomery -D debug=false             # override a variable
+bloomery --list                     # list targets
+bloomery --profile release          # activate a profile
+bloomery -j4                        # run independent tasks in parallel
+bloomery --manifest project.toml    # load a manifest other than 
 bloomery --version
 ```
 
@@ -46,7 +47,7 @@ bloomery --version
 
 ```
 project/
-├── project.toml           project build config
+├── bloomery.toml           project build config
 ├── main.cpp                source files
 ├── c++.toml                 optional: a local mold, overrides the bundled one
 └── .bloomery_cache.json      generated build cache
@@ -56,7 +57,7 @@ A working example is in [`examples/hello-cpp/`](examples/hello-cpp/):
 
 ```bash
 cd examples/hello-cpp
-bloomery project.toml
+bloomery
 ```
 
 ## Configuration reference

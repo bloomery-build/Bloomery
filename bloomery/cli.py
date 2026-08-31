@@ -20,7 +20,6 @@ def main():
         description="A TOML-native Build System",
         epilog="Management: bloomery install | update | uninstall",
     )
-    parser.add_argument("project", help="Path to project .toml file")
     parser.add_argument("targets", nargs="*", help="Specific targets to run")
     parser.add_argument("--clean", action="store_true",
                         help="Force full rebuild (ignore cache)")
@@ -39,11 +38,13 @@ def main():
                              "(default 1; 0 = one per CPU)")
     parser.add_argument("--keep-going", action="store_true",
                         help="With -j, let running tasks finish after a failure")
+    parser.add_argument("--manifest", default="bloomery.toml",
+                        help="Path to the manifest file")
     parser.add_argument("--version", action="version",
                         version=f"bloomery {__version__}")
     args = parser.parse_args()
 
-    project_path = os.path.abspath(args.project)
+    project_path = os.path.abspath(args.manifest)
     project_dir = os.path.dirname(project_path) or "."
     config = parse_toml(project_path)
 
