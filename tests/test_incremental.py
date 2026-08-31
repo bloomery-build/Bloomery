@@ -70,18 +70,18 @@ def test_header_change_invalidates_the_cache(tmp_path, cc):
     write_toml(tmp_path, headers_toml(cc))
     ini = str(tmp_path / "project.toml")
 
-    assert "[RUN]" in run_cli(ini).stdout
-    assert "[SKIP]" in run_cli(ini).stdout          # nothing changed
+    assert "[RUN]" in run_cli("--manifest", ini).stdout
+    assert "[SKIP]" in run_cli("--manifest", ini).stdout          # nothing changed
 
     (tmp_path / "v.h").write_text("v2\n", encoding="utf-8")
-    assert "[RUN]" in run_cli(ini).stdout           # header edit rebuilds
+    assert "[RUN]" in run_cli("--manifest", ini).stdout           # header edit rebuilds
 
 
 def test_headers_are_not_placed_on_the_command_line(tmp_path, cc):
     (tmp_path / "a.src").write_text("body\n", encoding="utf-8")
     (tmp_path / "v.h").write_text("v1\n", encoding="utf-8")
     write_toml(tmp_path, headers_toml(cc))
-    out = run_cli(str(tmp_path / "project.toml"), "--dry-run").stdout
+    out = run_cli("--manifest", str(tmp_path / "project.toml"), "--dry-run").stdout
     assert "a.src" in out
     assert "v.h" not in out
 
@@ -111,24 +111,24 @@ def setup_per_file(tmp_path, cc, names=("a", "b")):
 
 def test_per_file_runs_one_command_per_file(tmp_path, cc):
     ini = setup_per_file(tmp_path, cc)
-    out = run_cli(ini).stdout
+    out = run_cli("--manifest", ini).stdout
     assert "compile [a.src]" in out
     assert "compile [b.src]" in out
 
 
 def test_per_file_creates_output_directories(tmp_path, cc):
     ini = setup_per_file(tmp_path, cc)
-    run_cli(ini)
+    run_cli("--manifest", ini)
     assert (tmp_path / "obj" / "a.o").exists()
     assert (tmp_path / "obj" / "b.o").exists()
 
 
 def test_editing_one_source_recompiles_only_that_file(tmp_path, cc):
     ini = setup_per_file(tmp_path, cc)
-    run_cli(ini)
+    run_cli("--manifest", ini)
 
     (tmp_path / "a.src").write_text("a changed\n", encoding="utf-8")
-    out = run_cli(ini).stdout
+    out = run_cli("--manifest", ini).stdout
 
     assert "[RUN]  compile [a.src]" in out
     assert "[SKIP] compile [b.src]" in out
@@ -136,7 +136,7 @@ def test_editing_one_source_recompiles_only_that_file(tmp_path, cc):
 
 def test_per_file_uses_one_cache_entry_per_file(tmp_path, cc):
     ini = setup_per_file(tmp_path, cc)
-    run_cli(ini)
+    run_cli("--manifest", ini)
     data = json.loads((tmp_path / ".bloomery_cache.json").read_text())
     assert "compile:a.src" in data
     assert "compile:b.src" in data
@@ -144,7 +144,7 @@ def test_per_file_uses_one_cache_entry_per_file(tmp_path, cc):
 
 def test_per_file_with_no_inputs_is_a_skip(tmp_path, cc):
     write_toml(tmp_path, per_file_toml(cc))
-    out = run_cli(str(tmp_path / "project.toml")).stdout
+    out = run_cli("--manifest", str(tmp_path / "project.toml")).stdout
     assert "no input files" in out
 
 
@@ -167,7 +167,7 @@ def test_task_outputs_feeds_a_link_step(tmp_path, cc):
         files = "{{task.compile.outputs}}"
         output = "-o app.bin"
     """)
-    r = run_cli(str(tmp_path / "project.toml"))
+    r = run_cli("--manifest", str(tmp_path / "project.toml"))
     assert r.returncode == 0, r.stderr
     assert (tmp_path / "app.bin").read_text() == "a\nb\n"
 
@@ -208,9 +208,9 @@ def test_without_explicit_outputs_a_non_dash_o_flag_is_not_tracked(tmp_path, non
         output = "--emit=out.bin"
     """)
     ini = str(tmp_path / "project.toml")
-    run_cli(ini)
+    run_cli("--manifest", ini)
     (tmp_path / "out.bin").unlink()
-    out = run_cli(ini).stdout
+    out = run_cli("--manifest", ini).stdout
     assert "[SKIP]" in out          # wrongly considers the deleted binary current
 
 
@@ -230,11 +230,11 @@ def test_explicit_outputs_tracks_any_flag_syntax(tmp_path, nonstandard_cc):
         outputs = ["out.bin"]
     """)
     ini = str(tmp_path / "project.toml")
-    run_cli(ini)
-    assert "[SKIP]" in run_cli(ini).stdout      # unchanged: still cached
+    run_cli("--manifest", ini)
+    assert "[SKIP]" in run_cli("--manifest", ini).stdout      # unchanged: still cached
 
     (tmp_path / "out.bin").unlink()
-    out = run_cli(ini).stdout
+    out = run_cli("--manifest", ini).stdout
     assert "[RUN]" in out                        # missing output forces a rebuild
     assert (tmp_path / "out.bin").exists()
 
@@ -255,7 +255,7 @@ def test_explicit_outputs_supports_interpolation(tmp_path, nonstandard_cc):
         output = "--emit=obj/{{stem}}.bin"
         outputs = ["obj/{{stem}}.bin"]
     """)
-    run_cli(str(tmp_path / "project.toml"))
+    run_cli("--manifest", str(tmp_path / "project.toml"))
     assert (tmp_path / "obj" / "a.bin").exists()
 
 
@@ -282,11 +282,11 @@ def test_parallel_is_faster_than_serial(tmp_path):
     ini = str(tmp_path / "project.toml")
 
     start = time.monotonic()
-    assert run_cli(ini).returncode == 0
+    assert run_cli("--manifest", ini).returncode == 0
     serial = time.monotonic() - start
 
     start = time.monotonic()
-    assert run_cli(ini, "-j4").returncode == 0
+    assert run_cli("--manifest", ini, "-j4").returncode == 0
     parallel = time.monotonic() - start
 
     assert parallel < serial - 0.4, f"serial={serial:.2f} parallel={parallel:.2f}"
@@ -294,7 +294,7 @@ def test_parallel_is_faster_than_serial(tmp_path):
 
 def test_parallel_respects_dependencies(tmp_path):
     write_toml(tmp_path, PARALLEL_TOML)
-    out = run_cli(str(tmp_path / "project.toml"), "-j4").stdout
+    out = run_cli("--manifest", str(tmp_path / "project.toml"), "-j4").stdout
     assert out.index("a") < out.index("joined")
     assert out.index("b") < out.index("joined")
 
@@ -314,7 +314,7 @@ def test_parallel_failure_stops_the_build(tmp_path):
         always_run = true
         command = "python -c \\"print('SHOULD_NOT_RUN')\\""
     """)
-    r = run_cli(str(tmp_path / "project.toml"), "-j4")
+    r = run_cli("--manifest", str(tmp_path / "project.toml"), "-j4")
     assert r.returncode == 1
     assert "SHOULD_NOT_RUN" not in r.stdout
     assert "Traceback" not in r.stderr
@@ -322,13 +322,13 @@ def test_parallel_failure_stops_the_build(tmp_path):
 
 def test_jobs_zero_means_one_per_cpu(tmp_path):
     write_toml(tmp_path, PARALLEL_TOML)
-    r = run_cli(str(tmp_path / "project.toml"), "-j0")
+    r = run_cli("--manifest", str(tmp_path / "project.toml"), "-j0")
     assert r.returncode == 0
     assert "Jobs" in r.stdout
 
 
 def test_serial_output_is_unchanged_by_default(tmp_path):
     write_toml(tmp_path, PARALLEL_TOML)
-    out = run_cli(str(tmp_path / "project.toml")).stdout
+    out = run_cli("--manifest", str(tmp_path / "project.toml")).stdout
     assert "-- a --" in out
     assert "Jobs" not in out

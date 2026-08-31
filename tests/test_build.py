@@ -221,14 +221,14 @@ MINIMAL = """
 
 def test_cli_dry_run(tmp_path):
     write_toml(tmp_path, MINIMAL)
-    r = run_cli(str(tmp_path / "project.toml"), "--dry-run")
+    r = run_cli("--manifest", str(tmp_path / "project.toml"), "--dry-run")
     assert r.returncode == 0
     assert "echo hello" in r.stdout
 
 
 def test_cli_unknown_target_fails_loudly(tmp_path):
     write_toml(tmp_path, MINIMAL)
-    r = run_cli(str(tmp_path / "project.toml"), "nosuchtarget", "--dry-run")
+    r = run_cli("--manifest", str(tmp_path / "project.toml"), "nosuchtarget", "--dry-run")
     assert r.returncode == 1
     assert "Unknown target" in r.stderr
     assert "Traceback" not in r.stderr
@@ -236,12 +236,12 @@ def test_cli_unknown_target_fails_loudly(tmp_path):
 
 def test_cli_target_by_task_key(tmp_path):
     write_toml(tmp_path, MINIMAL)
-    r = run_cli(str(tmp_path / "project.toml"), "hello", "--dry-run")
+    r = run_cli("--manifest", str(tmp_path / "project.toml"), "hello", "--dry-run")
     assert r.returncode == 0
 
 
 def test_cli_missing_file_has_no_traceback(tmp_path):
-    r = run_cli(str(tmp_path / "absent.toml"))
+    r = run_cli("--manifest", str(tmp_path / "absent.toml"))
     assert r.returncode == 1
     assert "Missing file" in r.stderr
     assert "Traceback" not in r.stderr
@@ -249,7 +249,7 @@ def test_cli_missing_file_has_no_traceback(tmp_path):
 
 def test_cli_malformed_toml_has_no_traceback(tmp_path):
     (tmp_path / "bad.toml").write_text("this = is not [ valid\n")
-    r = run_cli(str(tmp_path / "bad.toml"))
+    r = run_cli("--manifest", str(tmp_path / "bad.toml"))
     assert r.returncode == 1
     assert "Could not parse" in r.stderr
     assert "Traceback" not in r.stderr
@@ -264,7 +264,7 @@ def test_cli_cycle_has_no_traceback(tmp_path):
         depends = ["a"]
         command = "echo b"
     """)
-    r = run_cli(str(tmp_path / "project.toml"), "--dry-run")
+    r = run_cli("--manifest", str(tmp_path / "project.toml"), "--dry-run")
     assert r.returncode == 1
     assert "Cycle detected" in r.stderr
 
@@ -277,7 +277,7 @@ def test_cli_version():
 
 def test_cli_list_targets(tmp_path):
     write_toml(tmp_path, MINIMAL)
-    r = run_cli(str(tmp_path / "project.toml"), "--list")
+    r = run_cli("--manifest", str(tmp_path / "project.toml"), "--list")
     assert r.returncode == 0
     assert "hello" in r.stdout
 
@@ -289,7 +289,7 @@ def test_cli_failing_task_exits_nonzero(tmp_path):
         [tasks.boom]
         command = 'python -c "import sys; sys.exit(3)"'
     """)
-    r = run_cli(str(tmp_path / "project.toml"))
+    r = run_cli("--manifest", str(tmp_path / "project.toml"))
     assert r.returncode == 1
     assert "failed" in r.stderr.lower()
     assert "Traceback" not in r.stderr
@@ -297,7 +297,7 @@ def test_cli_failing_task_exits_nonzero(tmp_path):
 
 def test_dry_run_does_not_write_a_cache_file(tmp_path):
     write_toml(tmp_path, MINIMAL)
-    run_cli(str(tmp_path / "project.toml"), "--dry-run")
+    run_cli("--manifest", str(tmp_path / "project.toml"), "--dry-run")
     assert not (tmp_path / ".bloomery_cache.json").exists()
 
 
@@ -312,8 +312,8 @@ def test_profile_overrides_variables(tmp_path):
         [tasks.build]
         command = "g++ {opt}"
     """)
-    base = run_cli(str(tmp_path / "project.toml"), "--dry-run")
-    rel = run_cli(str(tmp_path / "project.toml"), "--dry-run", "--profile", "release")
+    base = run_cli("--manifest", str(tmp_path / "project.toml"), "--dry-run")
+    rel = run_cli("--manifest", str(tmp_path / "project.toml"), "--dry-run", "--profile", "release")
     assert "g++ -O0" in base.stdout
     assert "g++ -O2" in rel.stdout
 
@@ -327,7 +327,7 @@ def test_cli_define_overrides_a_variable(tmp_path):
         [tasks.build]
         command = "g++ {opt}"
     """)
-    r = run_cli(str(tmp_path / "project.toml"), "--dry-run", "-D", "opt=-O3")
+    r = run_cli("--manifest", str(tmp_path / "project.toml"), "--dry-run", "-D", "opt=-O3")
     assert "g++ -O3" in r.stdout
 
 
@@ -341,24 +341,24 @@ def test_cli_define_feeds_a_dispatch_table(tmp_path):
         command = "echo"
         flags = { on = "debug", true = "-g", false = "-O2" }
     """)
-    r = run_cli(str(tmp_path / "project.toml"), "--dry-run", "-D", "debug=false")
+    r = run_cli("--manifest", str(tmp_path / "project.toml"), "--dry-run", "-D", "debug=false")
     assert "-O2" in r.stdout
     assert "-g" not in r.stdout
 
 
 # ── shipped example ───────────────────────────────────────────────
 
-EXAMPLE = os.path.join(REPO_ROOT, "examples", "hello-cpp", "project.toml")
+EXAMPLE = os.path.join(REPO_ROOT, "examples", "hello-cpp", "bloomery.toml")
 
 
 def test_shipped_example_resolves(tmp_path):
-    r = run_cli(EXAMPLE, "--dry-run")
+    r = run_cli("--manifest", EXAMPLE, "--dry-run")
     assert r.returncode == 0, r.stderr
     assert "Traceback" not in r.stderr
 
 
 def test_shipped_example_lists_its_targets():
-    r = run_cli(EXAMPLE, "--list")
+    r = run_cli("--manifest", EXAMPLE, "--list")
     assert r.returncode == 0
     for name in ("build", "run", "clean"):
         assert name in r.stdout
