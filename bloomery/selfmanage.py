@@ -4,6 +4,7 @@ import sys
 
 from bloomery.cli import main
 from bloomery.errors import BloomeryError
+from bloomery.moldregistry import mold_group
 
 REPO_URL = "https://github.com/hydrophobis/Bloomery"
 DEV_DIR = os.path.join(os.path.expanduser("~"), ".bloomery", "src")
@@ -82,12 +83,19 @@ SELF_COMMANDS = {
     "init": init_command,
 }
 
+SELF_GROUPS = {
+    "mold": mold_group,
+}
+
 
 def cli():
     try:
         # before argparse, which would read these as a project path
         if len(sys.argv) == 2 and sys.argv[1] in SELF_COMMANDS:
             SELF_COMMANDS[sys.argv[1]]()
+            return 0
+        if len(sys.argv) >= 2 and sys.argv[1] in SELF_GROUPS:
+            SELF_GROUPS[sys.argv[1]](sys.argv[2:])
             return 0
         main()
     except BloomeryError as e:

@@ -1,0 +1,13 @@
+[bloomery]
+mold = "{{name}}"
+
+[meta]
+name = "{{Name}}"
+version = "0.1"
+description = "TODO: describe this mold"
+
+[definitions]
+compiler = "TODO"
+flags = ""
+files = { ending = [".TODO"] }
+output = ""

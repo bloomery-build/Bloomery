@@ -24,3 +24,11 @@ class UnknownTargetError(BloomeryError):
 
 class MoldNotFoundError(ConfigNotFoundError):
     """Raised when a mold cannot be located on the search path."""
+
+
+class RegistryError(BloomeryError):
+    """Raised on a network/lookup failure talking to a GitHub-backed registry."""
+
+
+class MoldDownloadError(RegistryError):
+    """Raised when a mold cannot be fetched from MoldRegistry."""
