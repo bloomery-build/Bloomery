@@ -5,6 +5,7 @@ import sys
 from bloomery.alloyregistry import alloy_group
 from bloomery.chargeregistry import charge_group
 from bloomery.cli import main
+from bloomery.color import paint
 from bloomery.errors import BloomeryError
 from bloomery.moldregistry import mold_group
 
@@ -38,7 +39,7 @@ def install_command():
         _run("git", "clone", REPO_URL, DEV_DIR)
         root = DEV_DIR
     _run(sys.executable, "-m", "pip", "install", "-e", root)
-    print(f"OK - 'bloomery' installed in dev mode from {root}")
+    print(paint(f"OK - 'bloomery' installed in dev mode from {root}", "green"))
 
 
 def update_command():
@@ -46,10 +47,10 @@ def update_command():
     root = repo_root()
     if root is not None:
         _run("git", "-C", root, "pull", "--ff-only")
-        print(f"OK - updated {root}")
+        print(paint(f"OK - updated {root}", "green"))
         return
     _run(sys.executable, "-m", "pip", "install", "--upgrade", "bloomery-build")
-    print("OK - upgraded bloomery-build from PyPI")
+    print(paint("OK - upgraded bloomery-build from PyPI", "green"))
 
 
 def uninstall_command():
@@ -75,7 +76,7 @@ def init_command():
 
     with open("./bloomery.toml", "w", encoding="utf-8") as f:
         f.write(content)
-    print("OK - wrote bloomery.toml")
+    print(paint("OK - wrote bloomery.toml", "green"))
 
 
 SELF_COMMANDS = {
@@ -103,9 +104,9 @@ def cli():
             return 0
         main()
     except BloomeryError as e:
-        print(f"\nX {e}", file=sys.stderr)
+        print(f"\n{paint('X', 'red')} {e}", file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:
-        print("\nX Interrupted.", file=sys.stderr)
+        print(f"\n{paint('X', 'red')} Interrupted.", file=sys.stderr)
         sys.exit(130)
     return 0

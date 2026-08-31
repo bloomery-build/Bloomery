@@ -9,6 +9,7 @@ bloomery.charges).
 import os
 
 import bloomery.charges as charges
+from bloomery.color import entry_line, paint
 from bloomery.errors import BloomeryError, ChargeNotFoundError, RegistryError
 from bloomery.registry import RegistryClient
 
@@ -33,8 +34,8 @@ def list_command():
         return
     print("Available charges:")
     for entry in entries:
-        desc = f"  {entry['description']}" if entry.get("description") else ""
-        print(f"  {entry.get('language', '?')}/{entry['name']}{desc}")
+        ref = f"{entry.get('language', '?')}/{entry['name']}"
+        print(entry_line(ref, entry.get("description", "")))
 
 
 def search_command(query):
@@ -48,7 +49,8 @@ def search_command(query):
         print(f"No charges match {query!r}.")
         return
     for entry in hits:
-        print(f"  {entry.get('language', '?')}/{entry['name']}")
+        ref = f"{entry.get('language', '?')}/{entry['name']}"
+        print(entry_line(ref, entry.get("description", "")))
 
 
 def get_command(ref, force=False):
@@ -74,7 +76,7 @@ def get_command(ref, force=False):
     os.makedirs(dest_dir, exist_ok=True)
     with open(dest, "wb") as f:
         f.write(content)
-    print(f"OK - wrote {dest}")
+    print(paint(f"OK - wrote {dest}", "green"))
 
 
 def install_command(items, verbose=False):
@@ -92,10 +94,12 @@ def install_command(items, verbose=False):
             get_command(item)
 
     lock = charges.install_charges(items, project_dir, verbose=verbose)
-    print(f"OK - installed {len(lock)} charge(s)")
+    print(paint(f"OK - installed {len(lock)} charge(s)", "green"))
     for ref, info in lock.items():
         extra = f" ({info['package']})" if "package" in info else ""
-        print(f"  {ref}{extra} {info['version']} (via {info['alloy']})")
+        version = f" {info['version']}" if info["version"] else ""
+        print(f"  {paint(ref, 'cyan')}{extra}{paint(version, 'dim')} "
+              f"(via {paint(info['alloy'], 'green')})")
 
 
 def charge_group(argv):

@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from bloomery._version import __version__
 from bloomery.cache import BuildCache
 from bloomery.charges import ensure_installed
+from bloomery.color import paint
 from bloomery.config import list_targets, load_mold, load_profiles, load_variables, parse_toml
 from bloomery.context import Context
 from bloomery.dag import TaskDAG
@@ -142,7 +143,7 @@ def main():
         if not args.dry_run:
             cache.save()
 
-    print("OK - All tasks completed.")
+    print(paint("OK - All tasks completed.", "green"))
 
 
 def run_tasks(runner, evaluator, dag, config, order, project_dir,

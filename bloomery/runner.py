@@ -6,6 +6,7 @@ import sys
 import threading
 
 from bloomery.cache import parse_depfile
+from bloomery.color import paint
 from bloomery.errors import TaskFailedError
 
 
@@ -120,9 +121,9 @@ class TaskRunner:
         # per-file lines were emitted as they ran; the summary was not
         summary = None
         if not files:
-            summary = f"[SKIP] {name} (no input files)"
+            summary = f"{paint('[SKIP]', 'yellow')} {name} (no input files)"
         elif not ran_any:
-            summary = f"[SKIP] {name} ({len(files)} file(s) up to date)"
+            summary = f"{paint('[SKIP]', 'yellow')} {name} ({len(files)} file(s) up to date)"
         if summary:
             lines.append(summary)
             self._emit([summary])
@@ -152,18 +153,18 @@ class TaskRunner:
             with self._cache_lock:
                 cached = self.cache.is_cached(key, task_hash, project_dir)
             if cached:
-                lines.append(f"[SKIP] {label} (up to date)")
+                lines.append(f"{paint('[SKIP]', 'yellow')} {label} {paint('(up to date)', 'dim')}")
                 self._emit(lines)
                 return lines
 
         self.plugins.run_hooks(f"Pre{key.split(':')[0]}", project_dir)
 
         if self.dry_run:
-            lines.append(f"[DRY] {label}: {command_line}")
+            lines.append(f"{paint('[DRY]', 'cyan')} {label}: {paint(command_line, 'dim')}")
             self._emit(lines)
             return lines
 
-        lines.append(f"[RUN]  {label}: {command_line}")
+        lines.append(f"{paint('[RUN]', 'green')}  {label}: {paint(command_line, 'dim')}")
         self._emit(lines)
         result = self._execute(command_line, project_dir)
 

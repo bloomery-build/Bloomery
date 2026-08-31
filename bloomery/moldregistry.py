@@ -5,6 +5,7 @@ where mold_search_path already looks for them.
 
 import os
 
+from bloomery.color import entry_line, paint
 from bloomery.errors import BloomeryError, MoldDownloadError
 from bloomery.registry import RegistryClient
 
@@ -30,8 +31,7 @@ def list_command():
         return
     print("Available molds:")
     for entry in molds:
-        desc = f"  {entry['description']}" if entry.get("description") else ""
-        print(f"  {entry['name']}{desc}")
+        print(entry_line(entry["name"], entry.get("description", "")))
 
 
 def search_command(query):
@@ -45,8 +45,7 @@ def search_command(query):
         print(f"No molds match {query!r}.")
         return
     for entry in hits:
-        desc = f"  {entry['description']}" if entry.get("description") else ""
-        print(f"  {entry['name']}{desc}")
+        print(entry_line(entry["name"], entry.get("description", "")))
 
 
 def get_command(name, force=False):
@@ -67,7 +66,7 @@ def get_command(name, force=False):
     os.makedirs(LOCAL_MOLD_DIR, exist_ok=True)
     with open(dest, "wb") as f:
         f.write(content)
-    print(f"OK - wrote {dest}")
+    print(paint(f"OK - wrote {dest}", "green"))
 
 
 def init_command(name):
@@ -84,7 +83,7 @@ def init_command(name):
     dest = f"./{name.lower()}.toml"
     with open(dest, "w", encoding="utf-8") as f:
         f.write(content)
-    print(f"OK - wrote {dest}")
+    print(paint(f"OK - wrote {dest}", "green"))
     print(f"Test it locally with: BLOOMERY_MOLD_PATH=. bloomery --manifest <project> ...")
     print("When it's ready, contribute it via a PR to bloomery-build/MoldRegistry"
           " (add the file and an index.json entry).")

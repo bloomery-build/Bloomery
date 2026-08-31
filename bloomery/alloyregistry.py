@@ -1,5 +1,6 @@
 import os
 
+from bloomery.color import entry_line, paint
 from bloomery.errors import BloomeryError, RegistryError
 from bloomery.registry import RegistryClient
 
@@ -24,8 +25,9 @@ def list_command():
         return
     print("Available alloys:")
     for entry in entries:
-        desc = f"  {entry['description']}" if entry.get("description") else ""
-        print(f"  {entry['name']} ({entry.get('language', '?')}){desc}")
+        language = f"({entry.get('language', '?')})"
+        description = f"{language} {entry['description']}" if entry.get("description") else language
+        print(entry_line(entry["name"], description))
 
 
 def get_command(name, force=False):
@@ -46,7 +48,7 @@ def get_command(name, force=False):
     os.makedirs(LOCAL_ALLOY_DIR, exist_ok=True)
     with open(dest, "wb") as f:
         f.write(content)
-    print(f"OK - wrote {dest}")
+    print(paint(f"OK - wrote {dest}", "green"))
 
 
 def alloy_group(argv):
