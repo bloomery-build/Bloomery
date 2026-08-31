@@ -1,0 +1,7 @@
+[alloy]
+name = "pip"
+language = "python"
+description = "Routes package charges through pip"
+
+[commands]
+install = { on = "platform", windows = "python -m pip install {charge.package}{charge.version}", default = "python3 -m pip install {charge.package}{charge.version}" }

@@ -1,0 +1,7 @@
+[alloy]
+name = "cargo"
+language = "rust"
+description = "Routes package charges through cargo"
+
+[commands]
+install = "cargo add {charge.package}{charge.version}"

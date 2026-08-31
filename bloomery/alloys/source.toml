@@ -1,0 +1,8 @@
+[alloy]
+name = "source"
+language = "*"
+description = "Fetch via git/tarball and run the charge's own [build] steps"
+
+[commands]
+# handled directly by charges.py's source-install path, not the generic
+# 'install' command dispatch every other alloy uses

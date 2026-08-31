@@ -32,3 +32,19 @@ class RegistryError(BloomeryError):
 
 class MoldDownloadError(RegistryError):
     """Raised when a mold cannot be fetched from MoldRegistry."""
+
+
+class ChargeNotFoundError(RegistryError):
+    """Raised when a charge cannot be located on the search path or registry."""
+
+
+class AlloyNotFoundError(RegistryError):
+    """Raised when an alloy cannot be located on the search path or registry."""
+
+
+class ChargeBuildError(BloomeryError):
+    """Raised when fetching or building a charge fails."""
+
+
+class CyclicChargeDependencyError(BloomeryError):
+    """Raised when a cycle is detected in the charge dependency graph."""

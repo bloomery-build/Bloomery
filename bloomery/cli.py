@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from bloomery._version import __version__
 from bloomery.cache import BuildCache
+from bloomery.charges import ensure_installed
 from bloomery.config import list_targets, load_mold, load_profiles, load_variables, parse_toml
 from bloomery.context import Context
 from bloomery.dag import TaskDAG
@@ -73,6 +74,9 @@ def main():
 
     system_name = config.get("meta", {}).get("system", "")
     mold_config = load_mold(system_name, project_dir, config)
+
+    # no-op unless the manifest opts in with [charges] auto_install = true
+    ensure_installed(config, project_dir)
 
     ctx = Context(
         project_dir=project_dir,

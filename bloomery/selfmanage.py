@@ -2,6 +2,8 @@ import os
 import subprocess
 import sys
 
+from bloomery.alloyregistry import alloy_group
+from bloomery.chargeregistry import charge_group
 from bloomery.cli import main
 from bloomery.errors import BloomeryError
 from bloomery.moldregistry import mold_group
@@ -85,6 +87,8 @@ SELF_COMMANDS = {
 
 SELF_GROUPS = {
     "mold": mold_group,
+    "charge": charge_group,
+    "alloy": alloy_group,
 }
 
 

@@ -39,7 +39,7 @@ packages = ["bloomery"]
 version = { attr = "bloomery._version.__version__" }
 
 [tool.setuptools.package-data]
-bloomery = ["molds/*.toml", "storage/**/*"]
+bloomery = ["molds/*.toml", "alloys/*.toml", "storage/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
