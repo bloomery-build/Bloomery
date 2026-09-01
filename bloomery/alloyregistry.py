@@ -3,6 +3,7 @@ import os
 from bloomery.color import entry_line, paint
 from bloomery.errors import BloomeryError, RegistryError
 from bloomery.registry import RegistryClient
+from bloomery.alloys import find_alloy
 
 REGISTRY_REPO = "bloomery-build/AlloyRegistry"
 LOCAL_ALLOY_DIR = os.path.join(os.path.expanduser("~"), ".bloomery", "alloys")
@@ -27,7 +28,11 @@ def list_command():
     for entry in entries:
         language = f"({entry.get('language', '?')})"
         description = f"{language} {entry['description']}" if entry.get("description") else language
-        print(entry_line(entry["name"], description))
+        if find_alloy(entry["name"], ".", index) is not None:
+            print(entry_line(entry["name"], description, 'green'))
+        else:
+            print(entry_line(entry["name"], description))
+        
 
 
 def get_command(name, force=False):

@@ -8,6 +8,7 @@ import os
 from bloomery.color import entry_line, paint
 from bloomery.errors import BloomeryError, MoldDownloadError
 from bloomery.registry import RegistryClient
+from bloomery.config import find_mold
 
 REGISTRY_REPO = "bloomery-build/MoldRegistry"
 LOCAL_MOLD_DIR = os.path.join(os.path.expanduser("~"), ".bloomery", "molds")
@@ -31,7 +32,10 @@ def list_command():
         return
     print("Available molds:")
     for entry in molds:
-        print(entry_line(entry["name"], entry.get("description", "")))
+        if find_mold(entry["name"], ".", index) is not None:
+            print(entry_line(entry["name"], entry.get("description", ""), 'green'))
+        else:
+            print(entry_line(entry["name"], entry.get("description", "")))
 
 
 def search_command(query):
@@ -45,6 +49,7 @@ def search_command(query):
         print(f"No molds match {query!r}.")
         return
     for entry in hits:
+        
         print(entry_line(entry["name"], entry.get("description", "")))
 
 

@@ -3,5 +3,8 @@ name = "pip"
 language = "python"
 description = "Routes package charges through pip"
 
+[requires]
+binary = "python"
+
 [commands]
 install = { on = "platform", windows = "python -m pip install {charge.package}{charge.version}", default = "python3 -m pip install {charge.package}{charge.version}" }

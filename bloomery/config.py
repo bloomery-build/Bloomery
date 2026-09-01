@@ -7,7 +7,6 @@ except ModuleNotFoundError:                # Python < 3.11
 
 from bloomery.errors import ConfigNotFoundError, ConfigParseError, MoldNotFoundError
 
-
 def parse_toml(filepath):
     """Parse a project/mold file into a plain nested dict"""
     if not os.path.exists(filepath):
@@ -47,8 +46,8 @@ def mold_search_path(project_dir, config=None):
     yield os.path.join(os.path.dirname(os.path.abspath(__file__)), "molds")
 
 
-def load_mold(system_name, project_dir, config=None, _seen=None):
-    """Load a mold, following Extends. Missing is an error, not a warning"""
+def find_mold(system_name, project_dir, config=None):
+    """Find a mold file without loading it."""
     if not system_name:
         return None
 
@@ -57,14 +56,22 @@ def load_mold(system_name, project_dir, config=None, _seen=None):
         candidate = os.path.join(directory, f"{system_name.lower()}.toml")
         searched.append(candidate)
         if os.path.exists(candidate):
-            mold = parse_toml(candidate)
-            return _apply_mold_inheritance(
-                mold, system_name, project_dir, config, _seen)
+            return candidate
 
-    raise MoldNotFoundError(
-        "Mold not found: {}\n  Searched:\n{}".format(
-            system_name, "\n".join(f"    {p}" for p in searched))
-    )
+    return None
+
+
+def load_mold(system_name, project_dir, config=None, _seen=None):
+    """Load a mold, following Extends. Missing is an error, not a warning."""
+    candidate = find_mold(system_name, project_dir, config)
+    if candidate is None:        
+        raise MoldNotFoundError(
+            "Mold not found: {}\n".format(system_name)
+        )
+
+    mold = parse_toml(candidate)
+    return _apply_mold_inheritance(
+        mold, system_name, project_dir, config, _seen)
 
 
 def _apply_mold_inheritance(mold, name, project_dir, config, seen):

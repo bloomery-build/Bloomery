@@ -3,5 +3,8 @@ name = "npm"
 language = "node"
 description = "Routes package charges through npm"
 
+[requires]
+binary = "npm"
+
 [commands]
 install = "npm install {charge.package}{charge.version}"

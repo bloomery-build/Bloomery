@@ -12,6 +12,7 @@ import bloomery.charges as charges
 from bloomery.color import entry_line, paint
 from bloomery.errors import BloomeryError, ChargeNotFoundError, RegistryError
 from bloomery.registry import RegistryClient
+from bloomery.charges import find_charge
 
 REGISTRY_REPO = "bloomery-build/ChargeRegistry"
 LOCAL_CHARGE_DIR = os.path.join(os.path.expanduser("~"), ".bloomery", "charges")
@@ -35,8 +36,10 @@ def list_command():
     print("Available charges:")
     for entry in entries:
         ref = f"{entry.get('language', '?')}/{entry['name']}"
-        print(entry_line(ref, entry.get("description", "")))
-
+        if find_charge(ref, ".", index) is not None:
+            print(entry_line(ref, entry.get("description", ""), 'green'))
+        else:
+            print(entry_line(ref, entry.get("description", "")))
 
 def search_command(query):
     index = _client.fetch_index()

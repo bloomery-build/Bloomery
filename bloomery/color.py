@@ -47,9 +47,9 @@ def paint(text, color):
     return f"\033[{_CODES[color]}m{text}\033[0m"
 
 
-def entry_line(primary, description=""):
-    """A cyan primary token plus a dim description, pip-list style."""
-    line = f"  {paint(primary, 'cyan')}"
+def entry_line(primary, description="", entry_color='cyan'):
+    """A colored primary token plus a dim description, pip-list style."""
+    line = f"  {paint(primary, entry_color)}"
     if description:
         line += f"  {paint(description, 'dim')}"
     return line

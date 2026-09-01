@@ -22,8 +22,11 @@ def alloy_search_path(project_dir, config=None):
     yield os.path.join(os.path.dirname(os.path.abspath(__file__)), "alloys")
 
 
-def load_alloy(name, project_dir, config=None):
-    """Load an alloy by name (usually a language name, e.g. 'python' -> pip)"""
+def find_alloy(name, project_dir, config=None):
+    """Find an alloy file without loading it.
+
+    name is usually a language name, e.g. 'python' -> pip.
+    """
     if not name:
         return None
 
@@ -32,9 +35,17 @@ def load_alloy(name, project_dir, config=None):
         candidate = os.path.join(directory, f"{name.lower()}.toml")
         searched.append(candidate)
         if os.path.exists(candidate):
-            return parse_toml(candidate)
+            return candidate
 
-    raise AlloyNotFoundError(
-        "Alloy not found: {}\n  Searched:\n{}".format(
-            name, "\n".join(f"    {p}" for p in searched))
-    )
+    return None
+
+
+def load_alloy(name, project_dir, config=None):
+    """Load an alloy by name (usually a language name, e.g. 'python' -> pip)."""
+    candidate = find_alloy(name, project_dir, config)
+    if candidate is None:
+        raise AlloyNotFoundError(
+            "Alloy not found: {}\n".format(name)
+        )
+
+    return parse_toml(candidate)

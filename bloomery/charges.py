@@ -6,6 +6,7 @@ with no charge file needed.
 
 import json
 import os
+import shutil
 from collections import defaultdict, deque
 
 from bloomery.alloys import load_alloy
@@ -50,23 +51,41 @@ def charge_search_path(project_dir, config=None):
     yield os.path.join(os.path.expanduser("~"), ".bloomery", "charges")
 
 
-def load_charge(ref, project_dir, config=None):
-    """ref is "<language>/<name>", e.g. "python/requests"."""
+def find_charge(ref, project_dir, config=None):
+    """Find a charge file without loading it.
+
+    ref is "<language>/<name>", e.g. "python/requests".
+    """
     if "/" not in ref:
         raise ChargeNotFoundError(
-            f"Charge ref must be '<language>/<name>' (e.g. 'python/requests'), got {ref!r}")
+            f"Charge ref must be '<language>/<name>' "
+            f"(e.g. 'python/requests'), got {ref!r}"
+        )
 
     searched = []
     for directory in charge_search_path(project_dir, config):
         candidate = os.path.join(directory, f"{ref.lower()}.toml")
         searched.append(candidate)
         if os.path.exists(candidate):
-            return parse_toml(candidate)
+            return candidate
+    
+    return None
 
-    raise ChargeNotFoundError(
-        "Charge not found: {}\n  Searched:\n{}".format(
-            ref, "\n".join(f"    {p}" for p in searched))
-    )
+    
+
+
+def load_charge(ref, project_dir, config=None):
+    """Load a charge.
+
+    ref is "<language>/<name>", e.g. "python/requests".
+    """
+    candidate = find_charge(ref, project_dir, config)
+    if candidate is None:
+        raise ChargeNotFoundError(
+            "Charge not found: {}\n".format(ref)
+        )
+
+    return parse_toml(candidate)
 
 
 def resolve_dependency_order(charges):
@@ -145,6 +164,10 @@ def _install_via_alloy(meta, alloy, evaluator, project_dir, dest):
     if "install" not in commands:
         raise ChargeBuildError(
             f"Alloy {alloy.get('alloy', {}).get('name')!r} has no 'install' command")
+
+    binary = alloy.get("requires", {}).get("binary")
+    if not shutil.which(binary):
+        raise ChargeBuildError(f"Alloy {alloy.get('alloy', {}).get('name')!r} requires a binary that is not installed ({binary!r})")
 
     command_line = evaluator.resolve_str(commands["install"])
     result = TaskRunner._execute(command_line, project_dir)
