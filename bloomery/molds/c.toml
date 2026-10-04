@@ -13,3 +13,14 @@ flags = "-std=c{mold.standard} -Wall"
 files = { ending = [".c"] }
 ext = { on = "platform", windows = ".exe", default = "" }
 output = "-o {input}{mold.ext}"
+
+[tasks.build]
+command = "{mold.compiler}"
+flags = "{mold.flags}"
+files = { ending = [".c"] }
+output = "{mold.output}"
+
+[tasks.run]
+depends = ["build"]
+always_run = true
+command = "{task.build.outputs}"

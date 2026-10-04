@@ -8,3 +8,5 @@ example = true
 
 [plugins.command]
 prefix = { on = "platform", windows = "cmd /c", default = "" }
+
+{{tasks}}

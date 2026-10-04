@@ -12,4 +12,16 @@ compiler = "g++"
 standard = "17"
 flags = "-std=c++{mold.standard}"
 files = { ending = [".cpp", ".cc", ".cxx", ".c"] }
-output = "-o {input}.exe"
+ext = { on = "platform", windows = ".exe", default = "" }
+output = "-o {input}{mold.ext}"
+
+[tasks.build]
+command = "{mold.compiler}"
+flags = "{mold.flags}"
+files = { ending = [".cpp", ".cc", ".cxx", ".c"] }
+output = "{mold.output}"
+
+[tasks.run]
+depends = ["build"]
+always_run = true
+command = "{task.build.outputs}"

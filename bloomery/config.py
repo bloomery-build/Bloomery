@@ -5,7 +5,7 @@ try:
 except ModuleNotFoundError:                # Python < 3.11
     import tomli as tomllib
 
-from bloomery.errors import ConfigNotFoundError, ConfigParseError, MoldNotFoundError
+from bloomery.errors import ConfigNotFoundError, ConfigParseError, MoldNotFoundError, MoldTaskError
 
 def parse_toml(filepath):
     """Parse a project/mold file into a plain nested dict"""
@@ -93,6 +93,34 @@ def _apply_mold_inheritance(mold, name, project_dir, config, seen):
     for key, value in parent["definitions"].items():
         defs.setdefault(key, value)
     return mold
+
+
+def resolve_tasks(config, mold_config):
+    """[tasks] plus [mold.tasks.*]: each declared name pulls in the mold's task, keys in the table override it"""
+    own = dict(config.get("tasks", {}))
+    declared = config.get("mold", {}).get("tasks", {})
+    if not declared:
+        return own
+
+    if mold_config is None:
+        raise MoldTaskError(
+            "[mold.tasks] declared but no mold is loaded "
+            "(set system in [meta] first)")
+
+    mold_tasks = mold_config.get("tasks", {})
+    merged = dict(own)
+    for name, overrides in declared.items():
+        if name in own:
+            raise MoldTaskError(
+                f"Task {name!r} is declared in both [tasks] and "
+                f"[mold.tasks] - pick one")
+        if name not in mold_tasks:
+            available = ", ".join(sorted(mold_tasks)) or "(none)"
+            raise MoldTaskError(
+                f"Mold has no task {name!r} for [mold.tasks.{name}]\n"
+                f"  Available: {available}")
+        merged[name] = {**mold_tasks[name], **overrides}
+    return merged
 
 
 def list_targets(config):

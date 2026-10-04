@@ -74,3 +74,36 @@ def test_init_scaffold_is_valid_toml(tmp_path, monkeypatch):
     config = parse_toml(str(tmp_path / "bloomery.toml"))
     assert config["meta"]["name"] == "myproj"
     assert config["meta"]["system"] == "python"
+
+
+def test_init_with_a_mold_scaffolds_its_tasks(tmp_path, monkeypatch):
+    from bloomery import parse_toml
+
+    monkeypatch.chdir(tmp_path)
+    answers = iter(["myproj", "c++"])
+    monkeypatch.setattr("builtins.input", lambda *_: next(answers))
+
+    selfmanage.init_command()
+    config = parse_toml(str(tmp_path / "bloomery.toml"))
+    assert set(config["mold"]["tasks"]) == {"build", "run"}
+
+
+def test_init_without_a_system_has_no_mold_tasks(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    answers = iter(["myproj", ""])
+    monkeypatch.setattr("builtins.input", lambda *_: next(answers))
+
+    selfmanage.init_command()
+    written = (tmp_path / "bloomery.toml").read_text(encoding="utf-8")
+    assert "mold" not in written
+
+
+def test_init_with_an_unknown_mold_warns_but_still_writes(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    answers = iter(["myproj", "nosuchlang"])
+    monkeypatch.setattr("builtins.input", lambda *_: next(answers))
+
+    selfmanage.init_command()
+    out = capsys.readouterr().out
+    assert "No mold named" in out
+    assert (tmp_path / "bloomery.toml").exists()

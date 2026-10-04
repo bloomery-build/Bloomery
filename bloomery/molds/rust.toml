@@ -13,3 +13,14 @@ flags = "--edition {mold.edition}"
 files = { ending = [".rs"] }
 ext = { on = "platform", windows = ".exe", default = "" }
 output = "-o {input}{mold.ext}"
+
+[tasks.build]
+command = "{mold.compiler}"
+flags = "{mold.flags}"
+files = { ending = [".rs"] }
+output = "{mold.output}"
+
+[tasks.run]
+depends = ["build"]
+always_run = true
+command = "{task.build.outputs}"

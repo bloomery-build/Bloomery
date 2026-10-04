@@ -7,7 +7,14 @@ from bloomery._version import __version__
 from bloomery.cache import BuildCache
 from bloomery.charges import ensure_installed
 from bloomery.color import paint
-from bloomery.config import list_targets, load_mold, load_profiles, load_variables, parse_toml
+from bloomery.config import (
+    list_targets,
+    load_mold,
+    load_profiles,
+    load_variables,
+    parse_toml,
+    resolve_tasks,
+)
 from bloomery.context import Context
 from bloomery.dag import TaskDAG
 from bloomery.errors import TaskFailedError, UnknownTargetError
@@ -50,6 +57,10 @@ def main():
     project_dir = os.path.dirname(project_path) or "."
     config = parse_toml(project_path)
 
+    system_name = config.get("meta", {}).get("system", "")
+    mold_config = load_mold(system_name, project_dir, config)
+    config["tasks"] = resolve_tasks(config, mold_config)
+
     if args.list:
         list_targets(config)
         return
@@ -72,9 +83,6 @@ def main():
             cli_vars[k.strip()] = v.strip()
         else:
             cli_vars[d.strip()] = "true"
-
-    system_name = config.get("meta", {}).get("system", "")
-    mold_config = load_mold(system_name, project_dir, config)
 
     # no-op unless the manifest opts in with [charges] auto_install = true
     ensure_installed(config, project_dir)

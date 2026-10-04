@@ -29,6 +29,9 @@ Task fields:
     always_run = true   Skip the cache, always execute
     default = false     Excluded from the default (no-target) build
 
+[mold.tasks.<name>]    Pull in a task the loaded mold defines; keys here
+                         override the mold's, everything else is inherited
+
 Usage:
     bloomery [targets...] [options]
     python -m bloomery [targets...] [options]
@@ -62,6 +65,7 @@ from bloomery.config import (
     load_variables,
     mold_search_path,
     parse_toml,
+    resolve_tasks,
 )
 from bloomery.context import Context
 from bloomery.dag import TaskDAG
@@ -71,6 +75,7 @@ from bloomery.errors import (
     ConfigParseError,
     CyclicDependencyError,
     MoldNotFoundError,
+    MoldTaskError,
     TaskFailedError,
     UnknownTargetError,
 )
@@ -88,6 +93,7 @@ __all__ = [
     "CyclicDependencyError",
     "Evaluator",
     "MoldNotFoundError",
+    "MoldTaskError",
     "PluginManager",
     "TaskDAG",
     "TaskFailedError",
@@ -103,5 +109,6 @@ __all__ = [
     "mold_search_path",
     "parse_depfile",
     "parse_toml",
+    "resolve_tasks",
     "run_tasks",
 ]

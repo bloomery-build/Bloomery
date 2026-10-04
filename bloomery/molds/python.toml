@@ -11,3 +11,8 @@ compiler = { on = "platform", windows = "python", default = "python3" }
 flags = ""
 files = { ending = [".py"] }
 output = ""
+
+[tasks.run]
+command = "{mold.compiler}"
+flags = "{mold.flags}"
+files = { ending = [".py"] }

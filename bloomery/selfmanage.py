@@ -6,6 +6,7 @@ from bloomery.alloyregistry import alloy_group
 from bloomery.chargeregistry import charge_group
 from bloomery.cli import main
 from bloomery.color import paint
+from bloomery.config import load_mold
 from bloomery.errors import BloomeryError
 from bloomery.moldregistry import mold_group
 
@@ -57,6 +58,25 @@ def uninstall_command():
     _run(sys.executable, "-m", "pip", "uninstall", "-y", "bloomery-build")
 
 
+def _mold_task_stubs(system_name):
+    """[mold.tasks.*] stub per task the chosen mold provides, or "" if there's no mold"""
+    if not system_name:
+        return ""
+    try:
+        mold = load_mold(system_name, ".")
+    except BloomeryError:
+        print(paint(
+            f"[WARN] No mold named {system_name!r} found; "
+            "skipping task stubs. Add [tasks] yourself, "
+            "or run 'bloomery mold get' once it exists.", "yellow"))
+        return ""
+
+    names = sorted((mold or {}).get("tasks", {}))
+    if not names:
+        return ""
+    return "\n".join(f"[mold.tasks.{name}]" for name in names) + "\n"
+
+
 def init_command():
     """Scaffold a project.toml in the current directory from the bundled template"""
     template_path = os.path.join(TEMPLATE_DIR, "init.toml")
@@ -73,6 +93,7 @@ def init_command():
     content = content.replace(
         "{{system}}",
         f'system = "{project_system}"' if project_system else "")
+    content = content.replace("{{tasks}}", _mold_task_stubs(project_system))
 
     with open("./bloomery.toml", "w", encoding="utf-8") as f:
         f.write(content)

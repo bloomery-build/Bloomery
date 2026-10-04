@@ -26,6 +26,10 @@ class MoldNotFoundError(ConfigNotFoundError):
     """Raised when a mold cannot be located on the search path."""
 
 
+class MoldTaskError(BloomeryError):
+    """Raised when a [mold.tasks.*] declaration doesn't line up with the mold."""
+
+
 class RegistryError(BloomeryError):
     """Raised on a network/lookup failure talking to a GitHub-backed registry."""
 

@@ -346,6 +346,52 @@ def test_cli_define_feeds_a_dispatch_table(tmp_path):
     assert "-g" not in r.stdout
 
 
+# ── mold-provided tasks ─────────────────────────────────────────────
+
+def test_cli_builds_from_a_mold_task_alone(tmp_path):
+    """No [tasks] at all — [mold.tasks.build] alone should be buildable."""
+    (tmp_path / "main.cpp").write_text("int main(){}")
+    write_toml(tmp_path, """
+        [meta]
+        name = "molded"
+        system = "c++"
+        [mold.tasks.build]
+    """)
+    r = run_cli("--manifest", str(tmp_path / "project.toml"), "--dry-run")
+    assert r.returncode == 0, r.stderr
+    assert "g++" in r.stdout
+    assert "main.cpp" in r.stdout
+
+
+def test_cli_list_shows_mold_provided_tasks(tmp_path):
+    write_toml(tmp_path, """
+        [meta]
+        name = "molded"
+        system = "c++"
+        [mold.tasks.build]
+        [mold.tasks.run]
+    """)
+    r = run_cli("--manifest", str(tmp_path / "project.toml"), "--list")
+    assert r.returncode == 0
+    assert "build" in r.stdout
+    assert "run" in r.stdout
+
+
+def test_cli_mold_task_name_collision_is_a_clean_error(tmp_path):
+    write_toml(tmp_path, """
+        [meta]
+        name = "molded"
+        system = "c++"
+        [tasks.build]
+        command = "custom"
+        [mold.tasks.build]
+    """)
+    r = run_cli("--manifest", str(tmp_path / "project.toml"), "--dry-run")
+    assert r.returncode == 1
+    assert "declared in both" in r.stderr
+    assert "Traceback" not in r.stderr
+
+
 # ── shipped example ───────────────────────────────────────────────
 
 EXAMPLE = os.path.join(REPO_ROOT, "examples", "hello-cpp", "bloomery.toml")
